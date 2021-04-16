@@ -1,36 +1,40 @@
 package main
 
 import (
-	"image/color"
+	"ecntg/model"
+	"ecntg/view"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-
-	"ecntg/model"
 )
 
+var frameCount uint64
+
 type Game struct {
-	grid model.Grid
+	model model.GameModel
 }
 
 func (g *Game) Update() error {
+	frameCount++
+	if frameCount%20 == 0 || frameCount > 600 {
+		g.model.RandomStamp()
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{255, 0, 0, 255})
-	ebitenutil.DebugPrint(screen, "Hello, World!")
+	view.DrawGame(screen, &g.model)
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 320, 240
+func (g Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return view.Layout(g.model.Grid.Size)
 }
 
 func main() {
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Hello, World!")
-	game := Game{model.NewGrid(10, 15)}
+	game := Game{}
+	game.model.NewGame(10, 15)
 	if err := ebiten.RunGame(&game); err != nil {
 		log.Fatal(err)
 	}

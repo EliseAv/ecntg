@@ -1,16 +1,22 @@
 package model
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 )
 
 type Tetromino struct {
-	Cells      [4][4]*Cell
-	Prev, Next *Tetromino
+	Minos       [4]Mino
+	Right, Left *Tetromino
 }
 
-var universe []*Tetromino = genUniverse()
+type Mino struct {
+	Offset Point
+	Cell   Cell
+}
+
+var universe = genUniverse()
 
 var rawData = `
 ---- ---- ---- --*- 
@@ -49,11 +55,23 @@ var rawData = `
 ---- ----
 `
 
+func (tetromino Tetromino) String() string {
+	i := int(0)
+	for _, mino := range tetromino.Minos {
+		i <<= 2
+		i += mino.Offset.X
+		i <<= 2
+		i += mino.Offset.Y
+	}
+	return fmt.Sprintf("%x", i)
+}
+
 func genUniverse() []*Tetromino {
 	rotatingSets := strings.Split(rawData, "/")
 	result := make([]*Tetromino, len(rotatingSets))
 	for iSet, set := range rotatingSets {
-		result[iSet] = genTetrominoSet(strings.TrimSpace(set))
+		tetromino := genTetrominoSet(strings.TrimSpace(set))
+		result[iSet] = tetromino
 	}
 	return result
 }
@@ -62,17 +80,19 @@ func genTetrominoSet(set string) *Tetromino {
 	lines := strings.Split(set, "\n")
 	setSize := len(strings.Split(lines[0], " "))
 	pieces := make([]Tetromino, setSize)
+	minoIndexes := make([]int, setSize)
 	// Build linked list
 	for i, piece := range pieces {
-		piece.Next = &pieces[(i+1)%setSize]
-		piece.Next.Prev = &piece
+		piece.Right = &pieces[(i+1)%setSize]
+		piece.Right.Left = &piece
 	}
 	// Transcribe characters
 	for y, line := range lines {
 		for i, row := range strings.Split(line, " ") {
 			for x, char := range row {
 				if char == '*' {
-					pieces[i].Cells[y][x] = &Cell{}
+					pieces[i].Minos[minoIndexes[i]] = Mino{Point{x, y}, SingleCell}
+					minoIndexes[i]++
 				}
 			}
 		}
@@ -83,5 +103,10 @@ func genTetrominoSet(set string) *Tetromino {
 
 func GetRandomTetromino() *Tetromino {
 	index := rand.Intn(len(universe))
-	return universe[index]
+	result := universe[index]
+	return result
+}
+
+func (tetromino Tetromino) Exists() bool {
+	return tetromino.Left != nil
 }
